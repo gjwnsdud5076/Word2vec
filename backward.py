@@ -12,14 +12,14 @@ class MatMul:
 
     def forward(self, x):
         W, = self.params
-        out = np.matmul(x,W)
+        out = np.dot(x,W)
         self.x = x
         return out
 
     def backward(self, dout):
         W, = self.params
-        dx = np.matmul(dout, W.T)
-        dW = np.matmul(self.x.T, dout)
+        dx = np.dot(dout, W.T)
+        dW = np.dot(self.x.T, dout)
         self.grads[0][...] = dW
         return dx
 

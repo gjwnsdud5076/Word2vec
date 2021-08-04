@@ -1,6 +1,9 @@
 import re
 import numpy as np
 from functools import reduce
+import os
+from tqdm import tqdm
+from collections import Counter
 
 word_to_id = {}
 id_to_word = {}
@@ -25,20 +28,19 @@ def process(text):
     corpus = np.array([word_to_id[word] for word in text_list])
     return corpus, word_to_id, id_to_word
 
-def create_context_target(corpus, win_sz):
-    contexts = []
-    target = []
-    length = len(corpus)
-    for i in range(win_sz, length-win_sz):
-        tmp = []
-        for t in range(win_sz):
-            tmp.append(corpus[i-win_sz+t])
-        for t in range(win_sz):
-            tmp.append(corpus[i+t+1])
-        contexts.append(tmp)
-        target.append(corpus[i])
-
-    return contexts, target
+def create_context_target(corpus, win_sz): #batch 고려
+    corpus = np.array(corpus)
+    contexts = 0
+    length = len(corpus[0])
+    target = corpus[:,win_sz:-win_sz]
+    for t in range(win_sz,length-win_sz):
+        idx = [i for i in range(t-win_sz, t+win_sz+1)]
+        del idx[win_sz]
+        if not contexts:
+            contexts = [corpus[:,idx]]
+        else:
+            contexts = np.array(contexts+[corpus[:,idx]])
+    return contexts, target.transpose()
 
 
 def idx_to_onehot(V,idx):
@@ -108,7 +110,67 @@ def remove_duplicate(params, grads):
 
     return params, grads
 
+def single_file_corpus(file):
+    corpus = []
+    with open(file,'r') as f:
+        lines = f.readlines()
+        for line in lines:
+            for word in line.split():
+                corpus.append(word_to_id[word])
+
+    return corpus
+
+def make_corpus(paths, batch = 9):
+    corpuses = []
+    for i in tqdm(range(batch), desc = "make corpus"):
+        corpus = []
+        for j in range(batch*i, batch*(i+1)):
+            corpus += single_file_corpus(paths[j])
+
+        corpuses.append(corpus)
 
 
+def make_word_sys(path, batch = 9):
+    full_path = []
+    word = []
+    word_to_id = {}
+    id_to_word = {}
+    id_to_freq = {}
+    for pth, _, files in os.walk(path):
+        for file in files:
+            full_path.append(pth+ "/"+ file)
+
+    counter = Counter()
+    for file in tqdm(full_path, desc="create word matrix"):
+        with open(file, 'r') as f:
+            lines = f.readlines()
+            for line in lines:
+                word += line.split()
+
+        counter.update(word)
+
+        most_n = 700*10**3
+        count = [('UNK', 0 )]
+        count.extend(Counter.most_common(most_n))
+
+        for word, freq in count:
+            id_to_word[len(id_to_freq)] = word
+            word_to_id[word] = len(id_to_freq)
+            id_to_freq[len(id_to_freq)] = freq
+
+        corpus = make_corpus(full_path)
+
+    return corpus, word_to_id, id_to_word, id_to_freq
+
+def to_cpu(x):
+    import numpy
+    if type(x) == numpy.ndarray:
+        return x
+    return np.asnumpy(x)
 
 
+def to_gpu(x):
+    import cupy #TODO: gpu 돌아가게 하기
+    if type(x) == cupy.ndarray:
+        return x
+    return cupy.asarray(x)
