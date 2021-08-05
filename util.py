@@ -4,6 +4,8 @@ from functools import reduce
 import os
 from tqdm import tqdm
 from collections import Counter
+import pickle
+import os
 
 word_to_id = {}
 id_to_word = {}
@@ -112,11 +114,14 @@ def remove_duplicate(params, grads):
 
 def single_file_corpus(file):
     corpus = []
-    with open(file,'r') as f:
+    with open(file,'r',encoding='UTF8') as f:
         lines = f.readlines()
         for line in lines:
             for word in line.split():
-                corpus.append(word_to_id[word])
+                if word in word_to_id:
+                    corpus.append(word_to_id[word])
+                else:
+                    corpus.append(0)
 
     return corpus
 
@@ -128,6 +133,7 @@ def make_corpus(paths, batch = 9):
             corpus += single_file_corpus(paths[j])
 
         corpuses.append(corpus)
+    return corpuses
 
 
 def make_word_sys(path, batch = 9):
@@ -140,31 +146,56 @@ def make_word_sys(path, batch = 9):
         for file in files:
             full_path.append(pth+ "/"+ file)
 
-    counter = Counter()
-    for file in tqdm(full_path, desc="create word matrix"):
-        with open(file, 'r') as f:
-            lines = f.readlines()
-            for line in lines:
-                word += line.split()
+    if os.path.isfile("cbow_params.pkl"):
+        with open("cbow_params.pkl", 'rb') as f:
+            load = pickle.load(f)
+        word_to_id = load['word_to_id']
+        id_to_word = load['id_to_word']
+        id_to_freq = load['id_to_freq']
 
-        counter.update(word)
+    else:
+        counter = Counter()
+        for file in tqdm(full_path, desc="create word matrix"):
+            with open(file, 'r', encoding='UTF8') as f:
+                lines = f.readlines()
+                for line in tqdm(lines, desc="word list"):
+                    line = line.lower()
+                    word = line.split()
+                    counter.update(word)
 
-        most_n = 700*10**3
         count = [('UNK', 0 )]
-        count.extend(Counter.most_common(most_n))
 
+        for word in counter:
+            if counter[word] < 5:
+                continue
+            else:
+                tup = (word, counter[word])
+                count.append(tup)
+
+        i =0
         for word, freq in count:
+            if i<20:
+                print(word, freq)
+                i +=1
             id_to_word[len(id_to_freq)] = word
             word_to_id[word] = len(id_to_freq)
             id_to_freq[len(id_to_freq)] = freq
 
-        corpus = make_corpus(full_path)
+
+        params = {}
+        params['word_to_id'] = word_to_id
+        params['id_to_word'] = id_to_word
+        params['id_to_preq'] = id_to_freq
+
+        with open('cbow_params.pkl', 'wb') as f:
+            pickle.dump(params, f, -1)
+
+    corpus = make_corpus(full_path)
 
     return corpus, word_to_id, id_to_word, id_to_freq
 
 def to_cpu(x):
-    import numpy
-    if type(x) == numpy.ndarray:
+    if type(x) == np.ndarray:
         return x
     return np.asnumpy(x)
 

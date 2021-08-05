@@ -57,21 +57,15 @@ if __name__ == '__main__':
     trainer.train(context, target)
     trainer.plot()
 
+    word_vecs = model.word_vecs
+
     ### evaluation ###
-    ae_analogy = Word_analogy_test(cfg.eval_show_num, model.W_in)
+    ae_analogy = Word_analogy_test(cfg.eval_show_num, word_vecs)
     ae_analogy.eval(cfg.eval_path)
 
     if torch.cuda.is_available():
-        word_vecs = to_cpu(model.word_vecs)
+        word_vecs = to_cpu(word_vecs)
 
-    params = {}
-    params['word_vecs'] = model.word_vecs.astype(np.float16)
-    params['word_to_id'] = model.word_to_id
-    params['id_to_word'] = model.id_to_word
-    params['id_to_preq'] = model.id_to_freq
-
-    with open('cbow_params.pkl', 'wb') as f:
-        pickle.dump(params, f, -1)
 
 
 
