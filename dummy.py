@@ -53,3 +53,12 @@ def remove_duplicate(params, grads):
         if not find_flg: break
 
     return params, grads
+
+if __name__ == '__main__':
+    with open("cbow_params.pkl", 'rb') as f:
+        load = pickle.load(f)
+    word_to_id = load['word_to_id']
+    id_to_word = load['id_to_word']
+    id_to_freq = load['id_to_preq']  # f ㅎㅎ
+
+    print(word_to_id['the'])

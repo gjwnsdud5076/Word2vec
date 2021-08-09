@@ -51,9 +51,6 @@ if __name__ == '__main__':
 
     context, target = model.context, model.target
 
-    if torch.cuda.is_available():
-        context, target = to_gpu(context), to_gpu(target)
-
     trainer.train(context, target)
     trainer.plot()
 
@@ -62,9 +59,6 @@ if __name__ == '__main__':
     ### evaluation ###
     ae_analogy = Word_analogy_test(cfg.eval_show_num, word_vecs)
     ae_analogy.eval(cfg.eval_path)
-
-    if torch.cuda.is_available():
-        word_vecs = to_cpu(word_vecs)
 
 
 

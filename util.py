@@ -38,7 +38,7 @@ def create_context_target(corpus, win_sz): #batch 고려
     for t in range(win_sz,length-win_sz):
         idx = [i for i in range(t-win_sz, t+win_sz+1)]
         del idx[win_sz]
-        if not contexts:
+        if type(contexts) == int:
             contexts = [corpus[:,idx]]
         else:
             contexts = np.array(contexts+[corpus[:,idx]])
@@ -112,31 +112,32 @@ def remove_duplicate(params, grads):
 
     return params, grads
 
-def single_file_corpus(file):
+def single_file_corpus(file, word_to_id):
     corpus = []
     with open(file,'r',encoding='UTF8') as f:
         lines = f.readlines()
         for line in lines:
             for word in line.split():
-                if word in word_to_id:
+                if word in word_to_id.keys():
                     corpus.append(word_to_id[word])
                 else:
                     corpus.append(0)
 
     return corpus
 
-def make_corpus(paths, batch = 9):
+def make_corpus(paths, batch, word_to_id):
     corpuses = []
-    for i in tqdm(range(batch), desc = "make corpus"):
+    assert len(paths)%batch == 0
+    length = int(len(paths)/batch)
+    for i in tqdm(range(batch), desc="make corpus"):
         corpus = []
-        for j in range(batch*i, batch*(i+1)):
-            corpus += single_file_corpus(paths[j])
-
+        for j in range(length*i, length*(i+1)):
+            corpus.append(single_file_corpus(paths[j],word_to_id))
         corpuses.append(corpus)
     return corpuses
 
 
-def make_word_sys(path, batch = 9):
+def make_word_sys(path, batch):
     full_path = []
     word = []
     word_to_id = {}
@@ -151,7 +152,7 @@ def make_word_sys(path, batch = 9):
             load = pickle.load(f)
         word_to_id = load['word_to_id']
         id_to_word = load['id_to_word']
-        id_to_freq = load['id_to_freq']
+        id_to_freq = load['id_to_freq'] # f ㅎㅎ
 
     else:
         counter = Counter()
@@ -172,11 +173,7 @@ def make_word_sys(path, batch = 9):
                 tup = (word, counter[word])
                 count.append(tup)
 
-        i =0
         for word, freq in count:
-            if i<20:
-                print(word, freq)
-                i +=1
             id_to_word[len(id_to_freq)] = word
             word_to_id[word] = len(id_to_freq)
             id_to_freq[len(id_to_freq)] = freq
@@ -185,23 +182,11 @@ def make_word_sys(path, batch = 9):
         params = {}
         params['word_to_id'] = word_to_id
         params['id_to_word'] = id_to_word
-        params['id_to_preq'] = id_to_freq
+        params['id_to_freq'] = id_to_freq
 
         with open('cbow_params.pkl', 'wb') as f:
             pickle.dump(params, f, -1)
 
-    corpus = make_corpus(full_path)
+    corpus = make_corpus(full_path,batch, word_to_id)
 
     return corpus, word_to_id, id_to_word, id_to_freq
-
-def to_cpu(x):
-    if type(x) == np.ndarray:
-        return x
-    return np.asnumpy(x)
-
-
-def to_gpu(x):
-    import cupy #TODO: gpu 돌아가게 하기
-    if type(x) == cupy.ndarray:
-        return x
-    return cupy.asarray(x)

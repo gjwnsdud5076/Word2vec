@@ -10,17 +10,13 @@ class CBOW:
         self.win_sz = cfg.win_sz
 
         self.corpus, self.word_to_id, self.id_to_word, self.id_to_freq = make_word_sys(cfg.path, batch=cfg.batch)
-        self.contexts, self.target = create_context_target(self.corpus, self.win_sz)
+        self.context, self.target = create_context_target(self.corpus, self.win_sz)
 
         self.V = len(self.word_to_id)
         cfg.V = self.V
 
-        self.context = convert_to_onehot(self.context, cfg.V)
-        self.target = convert_to_onehot(self.target, cfg.V)
-
-
         self.W_in = 0.01 * np.random.randn(self.V,self.D).astype('f')
-        self.W_out = 0.01 * np.random.randn(self.D,self.V).astype('f') #이부분 VD 맞는지..
+        self.W_out = 0.01 * np.random.randn(self.V,self.D).astype('f') #이부분 VD 맞는지..
 
         self.ae_W_in = []
 
@@ -66,7 +62,7 @@ class Config:
         self.D = 3
         self.win_sz = 3
         self.max_epoch = 10
-        self.batch = 3
+        self.batch = 9
         self.eval_iter = 1
         self.path = "1-billion-word-language-modeling-benchmark-r13output/training-monolingual.tokenized.shuffled"
         self.eval_path = ""
@@ -75,6 +71,6 @@ class Config:
 if __name__ == '__main__':
     cbow = CBOW()
     print(cbow.target)
-    print(cbow.contexts)
-    print(np.array(cbow.contexts).shape)
+    print(cbow.context)
+    print(np.array(cbow.context).shape)
 
