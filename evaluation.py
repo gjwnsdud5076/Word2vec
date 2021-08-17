@@ -44,7 +44,7 @@ class Word_analogy_test:
         incor_gram = 0
         typ = None
         vecs =[]
-        with open(file, 'r') as f:
+        with open(file, 'r', encoding='UTF8') as f:
             lst = f.readlines()
 
         for line in lst:

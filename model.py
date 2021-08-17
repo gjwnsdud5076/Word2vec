@@ -8,9 +8,9 @@ class CBOW:
 
         self.D = cfg.D #D is projection layer size
         self.win_sz = cfg.win_sz
+        self.batch_sz = cfg.batch
 
-        self.corpus, self.word_to_id, self.id_to_word, self.id_to_freq = make_word_sys(cfg.path, batch=cfg.batch)
-        self.context, self.target = create_context_target(self.corpus, self.win_sz)
+        self.word_to_id, self.id_to_word, self.id_to_freq = make_word_sys(cfg.train_path)
 
         self.V = len(self.word_to_id)
         cfg.V = self.V
@@ -40,16 +40,18 @@ class CBOW:
         self.word_vecs = self.W_in
 
 
-    def forward(self,context,target):
+    def forward(self, batch_context, batch_target):
+        batch_sz = self.batch_sz
         proj_out = 0
         for i in range(2*self.win_sz):
-            proj_out += self.ae_W_in[i].forward(context[i])
+            proj_out += self.ae_W_in[i].forward(batch_context[i])
         proj_out /= 2*self.win_sz
-        out = self.ae_W_out.forward(proj_out)
-
+        out = self.ae_W_out.forward(proj_out, batch_target)
+        out /= batch_sz
         return out
 
     def backward(self, dout=1):
+        dout /= self.batch_sz
         do = self.ae_W_out.backward(dout)
         do *= 1/(2*self.win_sz)
         for layer in self.ae_W_in:
@@ -61,16 +63,11 @@ class Config:
         self.V= 7
         self.D = 3
         self.win_sz = 3
-        self.max_epoch = 10
+        self.max_epoch = 3
         self.batch = 9
-        self.eval_iter = 1
-        self.path = "1-billion-word-language-modeling-benchmark-r13output/training-monolingual.tokenized.shuffled"
-        self.eval_path = ""
+        self.eval_interval = 1
+        self.train_path = "1-billion-word-language-modeling-benchmark-r13output/training-monolingual.tokenized.shuffled"
+        self.eval_path = "data/working_test.txt"
         self.eval_show_num = 3
-
-if __name__ == '__main__':
-    cbow = CBOW()
-    print(cbow.target)
-    print(cbow.context)
-    print(np.array(cbow.context).shape)
+        self.width = 0
 

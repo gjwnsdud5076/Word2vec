@@ -82,7 +82,7 @@ def negative_sampler_uni(corpus, power, number, uni_target): #batch로 만들기
 
 
 def negative_sampler(corpus, power, number, target):
-    batch_sz = target.shape[0]
+    batch_sz = len(target)
     rt = []
     for i in range(batch_sz):
         rt.append(negative_sampler_uni(corpus, power, number, target[i]))
@@ -125,6 +125,7 @@ def single_file_corpus(file, word_to_id):
 
     return corpus
 
+""" 이거 안씀
 def make_corpus(paths, batch, word_to_id):
     corpuses = []
     assert len(paths)%batch == 0
@@ -135,9 +136,9 @@ def make_corpus(paths, batch, word_to_id):
             corpus.append(single_file_corpus(paths[j],word_to_id))
         corpuses.append(corpus)
     return corpuses
+"""
 
-
-def make_word_sys(path, batch):
+def make_word_sys(path):
     full_path = []
     word = []
     word_to_id = {}
@@ -187,6 +188,5 @@ def make_word_sys(path, batch):
         with open('cbow_params.pkl', 'wb') as f:
             pickle.dump(params, f, -1)
 
-    corpus = make_corpus(full_path,batch, word_to_id)
 
-    return corpus, word_to_id, id_to_word, id_to_freq
+    return word_to_id, id_to_word, id_to_freq

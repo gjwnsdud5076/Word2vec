@@ -1,6 +1,7 @@
 import numpy as np
 from backward import *
 from util import *
+from model import *
 
 c0 = np.array([1,0,0])
 c1 = np.array([0,0,1])
@@ -62,3 +63,44 @@ if __name__ == '__main__':
     id_to_freq = load['id_to_preq']  # f ㅎㅎ
 
     print(word_to_id['the'])
+
+
+
+def create_context_target():
+    cfg = Config()
+    file = cfg.train_path
+    lines = []
+    cnt = 0
+    corpus = []
+
+    for _ in range(99):
+        with open(file,'r',encoding='UTF8')as f:
+            lines = f.readlines()
+
+        for line in lines: #한문장씩
+            words = line.split()
+            for word in words:
+                if word in word_to_id:
+                    id = word_to_id[word]
+                    corpus.append(id)
+
+            corpus_len = len(corpus)
+            context = []
+            target = []
+            for i in range(cfg.win_sz, corpus_len - cfg.win_sz):
+                con_tar = list(range(i - cfg.win_sz, i + cfg.win_sz + 1))
+                tar_pos = int(len(con_tar)/2)
+                target.append(con_tar[tar_pos])
+                del con_tar[tar_pos]
+                context.append(con_tar)
+                cnt += 1
+
+                if cnt == cfg.batch:
+
+
+                    con_tars = []
+                    cnt = 0
+
+
+
+

@@ -15,23 +15,20 @@ class Trainer:
         self.optimizer = optimizer
         self.loss_lst = []
 
-    def train(self, x, t, max_grad=None):
-        start_time = time.time()
-        cfg = Config()
+    def train(self, batch_context, batch_target, max_grad=None):
+        total_loss = 0
+        loss_count = 0
+        model, optimizer = self.model, self.optimizer
 
-        for epoch in range(cfg.max_epoch):
-        #don't need shuffle. already suffled data.
-            for batch in range(cfg.batch):
-                loss = self.model.forward(x[:,batch], t[:,batch])
-                self.model.backward(1)
-                params, grads = remove_duplicate(self.model.param, self.model.grad)
-                self.optimizer.update(params, grads)
+        loss = model.forward(batch_context, batch_target)
+        model.backward()
+        params, grads = remove_duplicate(model.params, model.grads)
+        optimizer.update(params, grads)
+        total_loss += loss
+        loss_count += 1
 
-                elapsed_time = time.time() - start_time
-                print('| epoch: %d, batch: %d, time: %d[s], loss: %.2f \n' %(epoch+1, batch+1, elapsed_time, loss))
-                self.loss_lst.append(float(loss))
 
-    def plot(self, ylim =None):
+    def plot(self, ylim=None):
         x = np.arange(cfg.batch)
         if ylim is not None:
             plt.ylim(*ylim)
@@ -43,22 +40,54 @@ class Trainer:
 
 if __name__ == '__main__':
     cfg = Config()
-    path = cfg.path
+    path = cfg.train_path
 
     model = CBOW()
     optimizer = SGD(0.025)
     trainer = Trainer(model, optimizer)
 
-    context, target = model.context, model.target
+    #context target batch만큼만 만들어서 돌리기
+    for _ in range(cfg.max_epoch):
+        file = cfg.train_path
+        lines = []
+        cnt = 0
+        corpus = []
 
-    trainer.train(context, target)
-    trainer.plot()
+        for _ in range(99):
+            with open(file,'r',encoding='UTF8')as f:
+                lines = f.readlines()
+
+            for line in lines: #한문장씩
+                words = line.split()
+                for word in words:
+                    if word in word_to_id:
+                        id = word_to_id[word]
+                        corpus.append(id)
+
+                corpus_len = len(corpus)
+                context = []
+                target = []
+                for i in range(cfg.win_sz, corpus_len - cfg.win_sz):
+                    con_tar = list(range(i - cfg.win_sz, i + cfg.win_sz + 1))
+                    tar_pos = int(len(con_tar)/2)
+                    target.append(con_tar[tar_pos])
+                    del con_tar[tar_pos]
+                    context.append(con_tar)
+                    cnt += 1
+
+                    if cnt == cfg.batch:
+                        trainer.train(context, target)
+
+                        context = []
+                        target = []
+                        cnt = 0
+
+        trainer.plot()
+        ae_analogy = Word_analogy_test(cfg.eval_show_num, model.word_vecs)
+        ae_analogy.eval(cfg.eval_path)
 
     word_vecs = model.word_vecs
 
-    ### evaluation ###
-    ae_analogy = Word_analogy_test(cfg.eval_show_num, word_vecs)
-    ae_analogy.eval(cfg.eval_path)
 
 
 
