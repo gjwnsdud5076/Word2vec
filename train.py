@@ -16,20 +16,16 @@ class Trainer:
         self.loss_lst = []
 
     def train(self, batch_context, batch_target, max_grad=None):
-        total_loss = 0
-        loss_count = 0
         model, optimizer = self.model, self.optimizer
 
         loss = model.forward(batch_context, batch_target)
         model.backward()
         params, grads = remove_duplicate(model.params, model.grads)
         optimizer.update(params, grads)
-        total_loss += loss
-        loss_count += 1
-
+        #self.loss_lst.append(loss)
 
     def plot(self, ylim=None):
-        x = np.arange(cfg.batch)
+        x = np.arange(len(self.loss_lst))
         if ylim is not None:
             plt.ylim(*ylim)
         plt.plot(x, self.loss_lst, label='train')
@@ -45,23 +41,24 @@ if __name__ == '__main__':
     model = CBOW()
     optimizer = SGD(0.025)
     trainer = Trainer(model, optimizer)
+    path_list = model.full_path
 
     #context target batch만큼만 만들어서 돌리기
     for _ in range(cfg.max_epoch):
-        file = cfg.train_path
         lines = []
         cnt = 0
         corpus = []
 
-        for _ in range(99):
+        for i in tqdm(range(99)):
+            file = path_list[i]
             with open(file,'r',encoding='UTF8')as f:
                 lines = f.readlines()
 
             for line in lines: #한문장씩
                 words = line.split()
                 for word in words:
-                    if word in word_to_id:
-                        id = word_to_id[word]
+                    if word in model.word_to_id.keys():
+                        id = model.word_to_id[word]
                         corpus.append(id)
 
                 corpus_len = len(corpus)
@@ -76,14 +73,16 @@ if __name__ == '__main__':
                     cnt += 1
 
                     if cnt == cfg.batch:
-                        trainer.train(context, target)
+                        context_t = list(np.array(context).transpose())
+                        trainer.train(context_t, target)
 
                         context = []
                         target = []
                         cnt = 0
 
-        trainer.plot()
-        ae_analogy = Word_analogy_test(cfg.eval_show_num, model.word_vecs)
+        #trainer.plot()
+        np.save("save/W_in_1.npy", model.word_vecs)
+        ae_analogy = Word_analogy_test(cfg.eval_show_num, model.word_vecs, model.word_to_id)
         ae_analogy.eval(cfg.eval_path)
 
     word_vecs = model.word_vecs

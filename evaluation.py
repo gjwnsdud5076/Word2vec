@@ -4,11 +4,12 @@ from util import *
 from model import *
 
 class Word_analogy_test:
-    def __init__(self, show_num, W_in): #, vec1, vec2, vec1_2):
+    def __init__(self, show_num, W_in, word_to_id): #, vec1, vec2, vec1_2):
         self.show_num = show_num
         self.idx_cossim_rank = {}
         self.W_in = W_in
         self.V = len(W_in)
+        self.word_to_id = word_to_id
 
     def cos_simir(self, vec1, vec2):
         a = np.sqrt(np.inner(vec1,vec1))
@@ -46,7 +47,7 @@ class Word_analogy_test:
         vecs =[]
         with open(file, 'r', encoding='UTF8') as f:
             lst = f.readlines()
-
+        conti = 1
         for line in lst:
             if line[:6] == ': gram':
                 typ = 'gram'
@@ -56,7 +57,13 @@ class Word_analogy_test:
                 words = line.split()
                 assert(len(words) == 4)
                 for word in words:
-                    vecs.append(idx_to_vec(self.W_in, word_to_id[word]))
+                    if word not in word_to_id.keys():
+                        conti = -1
+                        continue
+                    vecs.append(idx_to_vec(self.W_in, self.word_to_id[word]))
+                if conti == -1:
+                    conti = 1
+                    continue
                 vec = vecs[1] - vecs[0] + vecs[2]
                 nearest = self.find_nearest(vec)
                 if words[3] in nearest:

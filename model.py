@@ -10,21 +10,18 @@ class CBOW:
         self.win_sz = cfg.win_sz
         self.batch_sz = cfg.batch
 
-        self.word_to_id, self.id_to_word, self.id_to_freq = make_word_sys(cfg.train_path)
+        self.word_to_id, self.id_to_word, self.id_to_freq, self.full_path = make_word_sys(cfg.train_path)
 
         self.V = len(self.word_to_id)
-        cfg.V = self.V
 
-        self.W_in = 0.01 * np.random.randn(self.V,self.D).astype('f')
-        self.W_out = 0.01 * np.random.randn(self.V,self.D).astype('f') #이부분 VD 맞는지..
+        self.W_in = 0.01 * np.random.randn(self.V, self.D).astype('f')
+        self.W_out = 0.01 * np.random.randn(self.V, self.D).astype('f')
 
         self.ae_W_in = []
 
         for i in range(2*self.win_sz):
             self.ae_W_in.append(Embedding(self.W_in))
-
-        self.ae_W_out = NegativeSampling(self.W_out,self.corpus,power=0.75,sample_sz=5)
-        #self.sftloss = SoftmaxLoss()
+        self.ae_W_out = NegativeSampling(self.W_out, self.id_to_freq, power=0.75, sample_sz=5)
 
         layers = []
         for i in range(2*self.win_sz):
@@ -60,14 +57,13 @@ class CBOW:
 
 class Config:
     def __init__(self):
-        self.V= 7
         self.D = 3
-        self.win_sz = 3
-        self.max_epoch = 3
-        self.batch = 9
+        self.win_sz = 5
+        self.max_epoch = 5
+        self.batch = 100
         self.eval_interval = 1
         self.train_path = "1-billion-word-language-modeling-benchmark-r13output/training-monolingual.tokenized.shuffled"
-        self.eval_path = "data/working_test.txt"
+        self.eval_path = "data/questions-words.txt"
         self.eval_show_num = 3
         self.width = 0
 

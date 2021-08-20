@@ -64,7 +64,6 @@ class Embedding:
         np.add.at(dW, self.idx, dout)
         return None
 
-
 class EmbeddingDot:
     def __init__(self, W):
         self.embed = Embedding(W)
@@ -74,7 +73,7 @@ class EmbeddingDot:
 
     def forward(self, h, idx): #여기서 idx는 mini batch때문에 배열임.
         W_idx = self.embed.forward(idx)
-        out = np.sum(W_idx*h, axis = 1) #책 167 참조
+        out = np.sum(W_idx*h, axis=1) #책 167 참조
 
         self.cache = (W_idx, h)
 
@@ -107,19 +106,19 @@ class SigmoidLoss:
         return out
 
     def backward(self, dout):
-        batch_sz = dout.shape[0]
+        #batch_sz = self.t.shape[0]
 
-        return (self.y - self.t)/batch_sz
+        return (self.y - self.t) * dout #/ batch_sz
 
 
 class NegativeSampling:
-    def __init__(self, W, corpus, power=0.75, sample_sz=5):
+    def __init__(self, W, id_to_freq, power=0.75, sample_sz=5):
         self.sample_sz = sample_sz
         self.ae_embedding_dot = [EmbeddingDot(W) for _ in range(sample_sz+1)]
         self.ae_sigmoid_loss = [SigmoidLoss() for _ in range(sample_sz+1)]
         self.params, self.grads = [], []
-        self.corpus = corpus
         self.power = power
+        self.id_to_freq = id_to_freq
 
         for layer in self.ae_embedding_dot:
             self.params += layer.params
@@ -127,17 +126,18 @@ class NegativeSampling:
 
 
     def forward(self,h,target):
-        batch_sz = h.shape[0]
-        negative_sample = negative_sampler(self.corpus, self.power, self.sample_sz, target)
+        batch_sz = len(target)
+        negative_sample = negative_sampler(self.id_to_freq, self.sample_sz, target)
+        negative_sample = np.array(negative_sample)
 
         out = self.ae_embedding_dot[0].forward(h, target)
         correct = np.ones(batch_sz)
         loss = self.ae_sigmoid_loss[0].forward(out, correct)
 
-        for i in range(1,self.sample_sz+1):
-            out = self.ae_embedding_dot[i].forward(h, negative_sample[:,i])
+        for i in range(self.sample_sz):
+            out = self.ae_embedding_dot[i+1].forward(h, negative_sample[:,i])
             incorrect = np.zeros(batch_sz)
-            loss += self.ae_sigmoid_loss[i].forward(out, incorrect)
+            loss += self.ae_sigmoid_loss[i+1].forward(out, incorrect)
 
         return loss
 
