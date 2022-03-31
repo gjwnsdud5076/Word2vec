@@ -1,6 +1,6 @@
-# Word2vec Implimentation with pythorch
+# Word2vec Implimentation with python
 
-this is pytorch implimentation of Word2vec
+this is python implimentation of Word2vec
 
 original paper : [Efficient Estimation of Word Representations in Vector Space](https://arxiv.org/abs/1301.3781)
 
